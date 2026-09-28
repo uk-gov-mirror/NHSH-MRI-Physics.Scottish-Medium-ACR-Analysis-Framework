@@ -120,7 +120,10 @@ def ComputeRes(files,blur=0):
                 lsf = np.diff(profile)
                 window = np.hamming(len(lsf))
                 lsf_windowed = lsf * window
+
                 plt.plot(lsf_windowed)
+                
+
                 fft_vals = np.fft.fft(lsf_windowed, n=512)
                 mtf = np.abs(fft_vals)
                 mtf = mtf / mtf[0]
