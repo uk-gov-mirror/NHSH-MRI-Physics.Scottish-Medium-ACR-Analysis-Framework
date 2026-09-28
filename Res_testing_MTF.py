@@ -32,6 +32,7 @@ def rotate_points(points, center, angle_degrees):
 
 def ComputeRes(files,blur=0):
     #files = get_dicom_files(fileLoc)
+
     dcm_list = []
     for file in files:
         dcm_list.append(pydicom.dcmread(file))
@@ -54,8 +55,8 @@ def ComputeRes(files,blur=0):
     profiles = []
     MaskedProfiles = []
     angles = []
-
-    for Angle in range(0,180,1):
+    
+    for Angle in range(0,30,1):
         start_point = (cx - LineLen / 2, cy)  # (x1, y1)
         end_point =   (cx + LineLen / 2, cy)  # (x2, y2)
         RotatedPoints = rotate_points([start_point, end_point], ACRObj.centre, Angle)
@@ -71,6 +72,7 @@ def ComputeRes(files,blur=0):
         profiles.append(profile)
         MaskedProfiles.append(profileMask)
         angles.append(Angle)
+        
     plt.colorbar()
     if blur == 0:
         plt.savefig("ResTesting\\Image.png")
@@ -81,13 +83,15 @@ def ComputeRes(files,blur=0):
     HorRes=[]
     VertRes= []
     AllRes = []
-
+    AllMTFS=[]
+    HorMTFS=[]
+    VertMTFS=[]
     Results = []
     for i in range(len(profiles)):
         MaskProfile = MaskedProfiles[i]
         Edges = np.diff(MaskProfile)
 
-        
+        '''
         plt.plot(Edges)
         plt.savefig("Edges.png")
         plt.close()
@@ -95,6 +99,7 @@ def ComputeRes(files,blur=0):
         plt.plot(MaskProfile)
         plt.savefig("MaskProfile.png")
         plt.close()
+        '''
         
 
         LowerEdge = np.where(Edges == 1)[0][0]
@@ -114,7 +119,8 @@ def ComputeRes(files,blur=0):
         for profile in ExtractedProfiles:
                 lsf = np.diff(profile)
                 window = np.hamming(len(lsf))
-                lsf_windowed = lsf #* window
+                lsf_windowed = lsf * window
+                plt.plot(lsf_windowed)
                 fft_vals = np.fft.fft(lsf_windowed, n=512)
                 mtf = np.abs(fft_vals)
                 mtf = mtf / mtf[0]
@@ -125,9 +131,17 @@ def ComputeRes(files,blur=0):
                 PerfectIntegral =  np.trapz(mtf_Perfect, frequencies)
                 res = integral_area/PerfectIntegral
                 MTF.append(mtf_positive)
+
+                
+                AllMTFS.append(mtf_positive)
                 Res.append(res*100.0)
                 freq.append(frequencies)
-
+                if angles[i] < 45 or angles[i] > 135 and angles[i] < 225 or angles[i] > 315:
+                    HorMTFS.append(MTF)
+                else:
+                    VertMTFS.append(MTF)
+        plt.savefig("LSF.png")
+        plt.close("all")
         
         for profile in ExtractedProfiles:
             plt.plot(profile)
@@ -145,18 +159,44 @@ def ComputeRes(files,blur=0):
         plt.ylim(0, 1.05)
         plt.savefig("MTF.png")
         plt.close()
-        
+
+        #Do results in a per angle basis 
         #print("Resolution at "+str(angles[i])+"°: "+str(np.mean(Res)))
-
         Results.append([angles[i]]+Res)
-
         if angles[i] < 45 or angles[i] > 135 and angles[i] < 225 or angles[i] > 315:
             HorRes+=Res
         else:
             VertRes += Res
         AllRes += Res
 
-    return Results, np.mean(HorRes), np.mean(VertRes), np.mean(AllRes)
+    #Compute results over an average MTF
+    averageAllMTF = np.mean(AllMTFS, axis=0)
+    #averageHorMTF = np.mean(HorMTFS, axis=0)
+    #averageVertMTF = np.mean(VertMTFS,axis=0)
+
+    '''
+    plt.figure(figsize=(6, 4))
+    if "DL" in files[0].split("\\")[5]:
+        plt.plot(freq[0], averageAllMTF, lw=2,linestyle="--")
+    else:
+        plt.plot(freq[0], averageAllMTF, lw=2,linestyle="-")
+    plt.title("Avg Modulation Transfer Function (MTF)")
+    plt.xlabel("Spatial Frequency (cycles/pixel)")
+    plt.ylabel("MTF (Response)")
+    plt.grid(True)
+    #plt.ylim(0, 1.05)
+    plt.savefig("AvgMTF.png")
+    plt.close()
+    '''
+
+    mtf_Perfect = np.ones(len(freq[0]))
+    integral_area = np.trapz(averageAllMTF, freq[0])
+    PerfectIntegral =  np.trapz(mtf_Perfect, freq[0])
+    res = integral_area/PerfectIntegral
+
+    print(res,files[0].split("\\")[5])
+
+    return Results, np.mean(HorRes), np.mean(VertRes), np.mean(AllRes),freq[0],averageAllMTF
 
 #fileLoc = "MedACRTestingSetAndResults\\Blair Gartnavel"
 #Results, HorRes, VertRes, AllRes = ComputeRes(fileLoc)
@@ -167,7 +207,7 @@ def ComputeRes(files,blur=0):
 
 def TestBatch(blur=0):
     target_path = Path("C:\\Users\\Johnt\\Desktop\\MedACRRuns")
-    target_path = Path("C:\\Users\\Johnt\\Desktop\\MedACRRuns")
+    target_path = Path("C:\\Users\\John\\Desktop\\MedACRDLRuns")
 
     folders = [f for f in target_path.iterdir() if f.is_dir()]
     f = open("ResTesting/Result.txt","w")
@@ -189,6 +229,10 @@ def TestBatch(blur=0):
     DumpResults['0.8mm holes Vertical']=[]
     DumpDates = []
 
+    AvgMTFs = []
+    freqs = []
+    filenames = []
+
     for folder in folders:
         Fullpath = Path.joinpath(folder,"DICOMS")
         files = get_dicom_files(Fullpath)
@@ -199,8 +243,13 @@ def TestBatch(blur=0):
                 DICOMDict[seq] = []
             DICOMDict[seq].append(file)
 
+
         for key in DICOMDict.keys():
-            Results, HorRes, VertRes, AllRes = ComputeRes(DICOMDict[key],blur)
+            Results, HorRes, VertRes, AllRes, freq, AvgMTF = ComputeRes(DICOMDict[key],blur)
+
+            filenames.append(DICOMDict[key][0].split("\\")[5])
+            AvgMTFs.append(AvgMTF)
+            freqs.append(freq)
 
 
             AllResults = []
@@ -216,7 +265,7 @@ def TestBatch(blur=0):
             HorVertResults.append(AllRes)
             dates.append(datetime.strptime(folder.name.split("_")[-1], "%Y-%m-%d %H-%M-%S"))
 
-            if folder.name != "MRI1 DL QA" and folder.name != "MRI2 DL QA":
+            if "MRI1 DL QA" not in folder.name  and "MRI2 DL QA" not in folder.name:
                 DumpFiles = glob.glob(str(Path.joinpath(folder,"*.docx")))
                 for DumpFile in DumpFiles:
                     with open(DumpFile, 'rb') as FILE:
@@ -234,6 +283,20 @@ def TestBatch(blur=0):
                         DumpDates.append(data["date_scanned"])
             
     fig, axes = plt.subplots(3, 5, figsize=(60, 20))
+
+    plt.figure(figsize=(6, 4))
+    plt.plot(freqs[0], AvgMTFs[0], lw=2,linestyle="--",label=filenames[0])
+    plt.plot(freqs[1], AvgMTFs[1], lw=2,linestyle="-",label=filenames[1])
+    plt.title("Avg Modulation Transfer Function (MTF)")
+    plt.xlabel("Spatial Frequency (cycles/pixel)")
+    plt.ylabel("MTF (Response)")
+    plt.grid(True)
+    plt.legend()
+    #plt.ylim(0, 1.05)
+    plt.savefig("AvgMTF.png")
+    plt.close()
+
+    x=0
 
     def Plot(i,j,x,y,title):
         axes[i, j].plot(x, y, color='tab:blue',linestyle="",marker="x")
