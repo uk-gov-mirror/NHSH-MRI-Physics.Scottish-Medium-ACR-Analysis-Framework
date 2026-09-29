@@ -268,7 +268,7 @@ class ACRUniformity(HazenTask):
             )
 
             img_path = os.path.realpath(
-                os.path.join(self.report_path, f"{self.img_desc(dcm)}.png")
+                os.path.join(self.report_path, f"{self.img_desc(dcm)}_ACR.png")
             )
             fig.savefig(img_path)
             self.report_files.append(img_path)
@@ -327,7 +327,7 @@ class ACRUniformity(HazenTask):
             axes[1].hlines(y = HorLower,xmin=StartX,xmax=EndX,color='g',linestyle='--')
             axes[1].hlines(y = HorPixelMean,xmin=StartX,xmax=EndX,color='g',linestyle='-')
 
-            axes[2].set_title("Horizontal Line Profile")
+            axes[2].set_title("Vertical Line Profile")
             axes[2].plot(VertAvgLine,color='b')
             axes[2].axvline(x = StartY,color='r',linestyle='--')
             axes[2].axvline(x = EndY,color='r',linestyle='--')
@@ -336,7 +336,7 @@ class ACRUniformity(HazenTask):
             axes[2].hlines(y = VertPixelMean,xmin=StartY,xmax=EndY,color='g',linestyle='-')
 
             img_path = os.path.realpath(
-            os.path.join(self.report_path, f"{self.img_desc(dcm)}.png")
+            os.path.join(self.report_path, f"{self.img_desc(dcm)}_MagNET.png")
             )
             fig.savefig(img_path)
             self.report_files.append(img_path)
