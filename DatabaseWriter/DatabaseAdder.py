@@ -201,14 +201,33 @@ def Update_Spreadsheet():
         #Spatial Res
         if (type(data["Test"]["SpatialRes"]) != MedACRModules.Empty_Module.EmptyModule):
             Row.append(str(data["Test"]["SpatialRes"].settings["SpatialResMethod"]))
-            Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["1.1mm holes Horizontal"]))
-            Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["1.0mm holes Horizontal"]))
-            Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["0.9mm holes Horizontal"]))
-            Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["0.8mm holes Horizontal"]))
-            Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["1.1mm holes Vertical"]))
-            Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["1.0mm holes Vertical"]))
-            Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["0.9mm holes Vertical"]))
-            Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["0.8mm holes Vertical"]))
+
+            ResTags = []
+            ResTags.append("1.1mm holes Horizontal")
+            ResTags.append("1.0mm holes Horizontal")
+            ResTags.append("0.9mm holes Horizontal")
+            ResTags.append("0.8mm holes Horizontal")
+
+            ResTags.append("1.1mm holes Vertical")
+            ResTags.append("1.0mm holes Vertical")
+            ResTags.append("0.9mm holes Vertical")
+            ResTags.append("0.8mm holes Vertical")
+
+            for tag in ResTags:
+                if tag in data["Test"]["SpatialRes"].results["measurement"].keys():
+                    Row.append(str(data["Test"]["SpatialRes"].results["measurement"][tag]))
+                else:
+                    Row.append("Not Run")
+
+
+            #Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["1.1mm holes Horizontal"]))
+            #Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["1.0mm holes Horizontal"]))
+            #Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["0.9mm holes Horizontal"]))
+            #Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["0.8mm holes Horizontal"]))
+            #Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["1.1mm holes Vertical"]))
+            #Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["1.0mm holes Vertical"]))
+            #Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["0.9mm holes Vertical"]))
+            #Row.append(str(data["Test"]["SpatialRes"].results["measurement"]["0.8mm holes Vertical"]))
         else:
             Row.append("Not Run")
             Row.append("Not Run")
